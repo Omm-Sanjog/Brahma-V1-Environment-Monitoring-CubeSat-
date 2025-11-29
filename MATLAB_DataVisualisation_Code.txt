@@ -1,0 +1,134 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 🎯 PROJECT: LoRa Multi-Sensor Dashboard (MATLAB Real-Time Plotter)
+%
+% 📌 DESCRIPTION:
+% This MATLAB script listens to the serial port for JSON packets coming
+% from an Arduino/ESP32 LoRa receiver.  
+% Each packet contains multiple sensor values:
+%
+%   - MQ8 (Hydrogen)
+%   - MQ2 (Smoke / LPG)
+%   - MQ9 (CO / Methane)
+%   - MQ7 (Carbon Monoxide)
+%   - Temperature (°C)
+%   - Humidity (%)
+%   - Pressure (hPa)
+%   - Accelerometer (x, y, z)
+%   - Gyroscope (x, y, z)
+%
+% The script extracts JSON safely, computes magnitudes for IMU data,  
+% and plots everything in a 3x3 live dashboard.
+%
+% ▶️ Perfect for real-time monitoring of your LoRa-based sensor node.
+%
+% 📦 REQUIREMENTS:
+% - MATLAB (any version with "serialport" support)
+% - LoRa receiver sending JSON lines
+%
+% 🛠️ HOW TO USE:
+% 1. Update COM port in "port = 'COM5';"
+% 2. Run the script
+% 3. Observe real-time sensor dashboard
+%
+% 📁 AUTHOR: Your Name
+% 📅 DATE: 2025
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+clear; clc; close all;
+
+% === CONFIGURATION ===
+port = "COM5";     % ⚙️ Change this to your Arduino COM port
+baud = 9600;
+s = serialport(port, baud);
+flush(s);
+
+disp("🚀 Listening for JSON data from LoRa receiver...");
+
+% === DASHBOARD SETUP ===
+figure('Name','LoRa Sensor Dashboard','NumberTitle','off','Color',[0.1 0.1 0.1]);
+t = tiledlayout(3,3,'Padding','compact','TileSpacing','compact');
+
+nexttile; hMQ8 = plot(nan,nan,'r','LineWidth',1.5); title('MQ-8'); grid on;
+nexttile; hMQ2 = plot(nan,nan,'g','LineWidth',1.5); title('MQ-2'); grid on;
+nexttile; hMQ9 = plot(nan,nan,'b','LineWidth',1.5); title('MQ-9'); grid on;
+nexttile; hMQ7 = plot(nan,nan,'c','LineWidth',1.5); title('MQ-7'); grid on;
+nexttile; hTemp = plot(nan,nan,'m','LineWidth',1.5); title('Temperature (°C)'); grid on;
+nexttile; hHum = plot(nan,nan,'y','LineWidth',1.5); title('Humidity (%)'); grid on;
+nexttile; hPress = plot(nan,nan,'w','LineWidth',1.5); title('Pressure (hPa)'); grid on;
+nexttile; hAccel = plot(nan,nan,'Color',[0.4 0.7 1],'LineWidth',1.5); title('Accel Magnitude'); grid on;
+nexttile; hGyro = plot(nan,nan,'Color',[1 0.6 0.1],'LineWidth',1.5); title('Gyro Magnitude'); grid on;
+
+% === DATA BUFFERS ===
+t0 = tic;
+timeData = [];
+dataBuffer = struct('MQ8',[],'MQ2',[],'MQ9',[],'MQ7',[], ...
+                    'Temperature',[],'Humidity',[],'Pressure',[], ...
+                    'Accel',[],'Gyro',[]);
+
+while true
+    if s.NumBytesAvailable > 0
+        rawLine = readline(s);
+        str = strtrim(rawLine);
+
+        % --- Find JSON substring safely ---
+        startIdx = strfind(str, '{');
+        endIdx = strfind(str, '}');
+
+        % 🧩 Skip line if JSON is incomplete or invalid
+        if isempty(startIdx) || isempty(endIdx)
+            continue;
+        end
+
+        if endIdx(end) <= startIdx(1)
+            continue;
+        end
+
+        jsonStr = extractBetween(str, startIdx(1), endIdx(end));
+        if isempty(jsonStr)
+            continue;
+        end
+        jsonStr = jsonStr{1};
+
+        % --- Decode JSON safely ---
+        try
+            data = jsondecode(jsonStr);
+
+            % Time stamp
+            tNow = toc(t0);
+            timeData = [timeData, tNow];
+
+            % Append new values
+            dataBuffer.MQ8 = [dataBuffer.MQ8, data.MQ8];
+            dataBuffer.MQ2 = [dataBuffer.MQ2, data.MQ2];
+            dataBuffer.MQ9 = [dataBuffer.MQ9, data.MQ9];
+            dataBuffer.MQ7 = [dataBuffer.MQ7, data.MQ7];
+            dataBuffer.Temperature = [dataBuffer.Temperature, data.Temperature];
+            dataBuffer.Humidity = [dataBuffer.Humidity, data.Humidity];
+            dataBuffer.Pressure = [dataBuffer.Pressure, data.Pressure];
+
+            accelMag = sqrt(data.Accelerometer.x^2 + data.Accelerometer.y^2 + data.Accelerometer.z^2);
+            gyroMag  = sqrt(data.Gyroscope.x^2     + data.Gyroscope.y^2     + data.Gyroscope.z^2);
+
+            dataBuffer.Accel = [dataBuffer.Accel, accelMag];
+            dataBuffer.Gyro  = [dataBuffer.Gyro,  gyroMag];
+
+            % Update plots
+            set(hMQ8,'XData',timeData,'YData',dataBuffer.MQ8);
+            set(hMQ2,'XData',timeData,'YData',dataBuffer.MQ2);
+            set(hMQ9,'XData',timeData,'YData',dataBuffer.MQ9);
+            set(hMQ7,'XData',timeData,'YData',dataBuffer.MQ7);
+            set(hTemp,'XData',timeData,'YData',dataBuffer.Temperature);
+            set(hHum,'XData',timeData,'YData',dataBuffer.Humidity);
+            set(hPress,'XData',timeData,'YData',dataBuffer.Pressure);
+            set(hAccel,'XData',timeData,'YData',dataBuffer.Accel);
+            set(hGyro,'XData',timeData,'YData',dataBuffer.Gyro);
+
+            drawnow limitrate;
+
+        catch
+            % Ignore bad JSON lines silently
+            continue;
+        end
+    end
+end

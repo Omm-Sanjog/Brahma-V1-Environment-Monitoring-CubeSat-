@@ -1,0 +1,36 @@
+1. Hardware Connection
+The first step is establishing the physical link between your sensor system and the laptop.
+
+Connect the Receiver: Use a USB cable to plug your Arduino/ESP32 LoRa receiver into your laptop.
+
+Verify Data Flow: Ensure the LoRa receiver is actively running, is receiving data from your LoRa sensor node, and is outputting the sensor data to its serial port.
+
+2. MATLAB Configuration
+Next, configure the MATLAB script to communicate with the correct port.
+
+Identify COM Port: Determine the COM port number (e.g., COM5 on Windows, or /dev/ttyUSB0 on Linux/Mac) that your operating system assigned to the connected LoRa receiver.
+
+Edit the Script: Open the MATLAB script and navigate to the configuration section.
+
+Update Port Name: Change the value of the port variable to match the COM port you identified.
+
+Example: Change port = "COM5"; to your specific port.
+
+Baud Rate: Confirm the script is set to the required baud rate (the provided script uses baud = 9600).
+
+3. Run and Visualize
+The final stage involves executing the script to begin data monitoring.
+
+Start the Script: Run the MATLAB script within the MATLAB environment.
+
+Confirm Connection: The MATLAB command window should display the message: "Listening for JSON data from LoRa receiver..."
+
+Observe the Dashboard: A figure window titled "LoRa Sensor Dashboard" will open, showing a 3x3 tiled layout of plots.
+
+Real-Time Plotting: As the script reads, decodes, and processes incoming JSON data, the following nine plots will update automatically in real-time:
+
+Gas Sensors: MQ-8, MQ-2, MQ-9, MQ-7
+
+Environmental: Temperature, Humidity, Pressure
+
+Inertial (IMU): Accelerometer Magnitude, Gyroscope Magnitude
