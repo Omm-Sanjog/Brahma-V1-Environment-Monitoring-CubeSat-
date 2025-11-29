@@ -48,6 +48,12 @@ This project is designed for academic, research, and competition settings where 
 *Acts as the mission control base station.*
 
 ---
+### Physical Prototype
+A photo of the completed sensor and communication units.
+
+![Brahma-V1 Physical Prototype](Brahma-1.jpg)
+
+---
 
 ## 🌐 Communication Flow
 
