@@ -1,7 +1,7 @@
 # Brahma-V1 Environment Monitoring CubeSat 🛰️
 **PicoSat Telemetry & Distributed Computing System**
 
-**Author:** Omm Sanjog Barik
+**Author:** Omm Sanjog Barik & D Niharika
 **License:** MIT
 
 ---
